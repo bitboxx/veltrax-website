@@ -1,9 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { ElDialog, ElDialogPanel } from '@tailwindplus/elements/react'
 import { Button } from '@/components/elements/button'
 import { CheckmarkIcon } from '@/components/icons/checkmark-icon'
-
-const CONTACT_EMAIL = 'info@DecAltra.com'
+import { useMailerForm } from '@/components/hooks/useMailerForm'
 
 type FormState = {
   fullName: string
@@ -27,36 +26,33 @@ const initialState: FormState = {
 
 export default function RequestCallModal() {
   const [formState, setFormState] = useState<FormState>(initialState)
-  const [submitted, setSubmitted] = useState(false)
-
-  const body = useMemo(() => {
-    const lines = [
-      'New request call enquiry',
-      '',
-      `Full name: ${formState.fullName}`,
-      `Work email: ${formState.workEmail}`,
-      `Company: ${formState.company}`,
-      `Phone: ${formState.phoneNumber ? `${formState.phoneCountryCode} ${formState.phoneNumber}` : 'Not provided'}`,
-      `Preferred timing: ${formState.timing}`,
-      '',
-      'Question or context:',
-      formState.message,
-      '',
-      'Please follow up with a call.',
-    ]
-
-    return encodeURIComponent(lines.join('\n'))
-  }, [formState])
+  const { sending, sent, error, submit } = useMailerForm()
 
   function updateField<Key extends keyof FormState>(key: Key, value: FormState[Key]) {
     setFormState((current) => ({ ...current, [key]: value }))
   }
 
-  function handleSubmit(event: { preventDefault: () => void }) {
+  async function handleSubmit(event: { preventDefault: () => void }) {
     event.preventDefault()
-    const subject = encodeURIComponent(`Request a call from ${formState.company || formState.fullName}`)
-    window.location.href = `mailto:${CONTACT_EMAIL}?subject=${subject}&body=${body}`
-    setSubmitted(true)
+    const phone = formState.phoneNumber
+      ? `${formState.phoneCountryCode} ${formState.phoneNumber}`
+      : undefined
+    const message = [
+      'Request call enquiry',
+      '',
+      `Preferred timing: ${formState.timing}`,
+      '',
+      'Question or context:',
+      formState.message,
+    ].join('\n')
+
+    await submit({
+      name: formState.fullName,
+      email: formState.workEmail,
+      company: formState.company,
+      phone,
+      message,
+    })
   }
 
   return (
@@ -209,18 +205,25 @@ export default function RequestCallModal() {
                     We&apos;ll use this only to arrange the right follow-up. No mailing list, no pressure.
                   </div>
 
-                  {submitted ? (
+                  {sent ? (
                     <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-base/7 text-emerald-800">
-                      Your email client should open with the call request pre-filled. If it doesn&apos;t, send the same
-                      details to <strong>{CONTACT_EMAIL}</strong>.
+                      Thank you! Your call request has been received. We&apos;ll be in touch soon.
                     </div>
                   ) : null}
 
-                  <div className="flex">
-                    <Button size="lg" type="submit">
-                      Request my call
-                    </Button>
-                  </div>
+                  {error ? (
+                    <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-base/7 text-red-800">
+                      Something went wrong. Please try again or email us at <strong>info@DecAltra.com</strong>.
+                    </div>
+                  ) : null}
+
+                  {!sent ? (
+                    <div className="flex">
+                      <Button size="lg" type="submit" disabled={sending}>
+                        {sending ? 'Sending\u2026' : 'Request my call'}
+                      </Button>
+                    </div>
+                  ) : null}
                 </form>
               </div>
             </div>

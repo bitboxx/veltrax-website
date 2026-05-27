@@ -1,9 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { ElDialog, ElDialogPanel } from '@tailwindplus/elements/react'
 import { Button } from '@/components/elements/button'
 import { CheckmarkIcon } from '@/components/icons/checkmark-icon'
-
-const DEMO_REQUEST_EMAIL = 'demo@decaltra.com'
+import { useMailerForm } from '@/components/hooks/useMailerForm'
 
 type FormState = {
   fullName: string
@@ -25,34 +24,30 @@ const initialState: FormState = {
 
 export default function DemoRequestModal() {
   const [formState, setFormState] = useState<FormState>(initialState)
-  const [submitted, setSubmitted] = useState(false)
-
-  const body = useMemo(() => {
-    const lines = [
-      'New demo request',
-      '',
-      `Full name: ${formState.fullName}`,
-      `Work email: ${formState.workEmail}`,
-      `Company: ${formState.company}`,
-      `Role: ${formState.role}`,
-      `Priority: ${formState.priority}`,
-      `Timeline: ${formState.timeline}`,
-      '',
-      'Please follow up with a tailored DecAltra demo.',
-    ]
-
-    return encodeURIComponent(lines.join('\n'))
-  }, [formState])
+  const { sending, sent, error, submit } = useMailerForm()
 
   function updateField<Key extends keyof FormState>(key: Key, value: FormState[Key]) {
     setFormState((current) => ({ ...current, [key]: value }))
   }
 
-  function handleSubmit(event: { preventDefault: () => void }) {
+  async function handleSubmit(event: { preventDefault: () => void }) {
     event.preventDefault()
-    const subject = encodeURIComponent(`Demo request from ${formState.company || formState.fullName}`)
-    window.location.href = `mailto:${DEMO_REQUEST_EMAIL}?subject=${subject}&body=${body}`
-    setSubmitted(true)
+    const message = [
+      'Demo request',
+      '',
+      `Role: ${formState.role}`,
+      `Timeline: ${formState.timeline}`,
+      '',
+      'Top priorities:',
+      formState.priority,
+    ].join('\n')
+
+    await submit({
+      name: formState.fullName,
+      email: formState.workEmail,
+      company: formState.company,
+      message,
+    })
   }
 
   return (
@@ -187,18 +182,25 @@ export default function DemoRequestModal() {
                     to a mailing list.
                   </div>
 
-                  {submitted ? (
+                  {sent ? (
                     <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-base/7 text-emerald-800">
-                      Your email client should open with the demo request pre-filled. If it doesn&apos;t, send the same
-                      details to <strong>{DEMO_REQUEST_EMAIL}</strong>.
+                      Thank you! Your demo request has been received. We&apos;ll be in touch soon.
                     </div>
                   ) : null}
 
-                  <div className="flex">
-                    <Button size="lg" type="submit">
-                      Request my demo
-                    </Button>
-                  </div>
+                  {error ? (
+                    <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-base/7 text-red-800">
+                      Something went wrong. Please try again or email us at <strong>info@DecAltra.com</strong>.
+                    </div>
+                  ) : null}
+
+                  {!sent ? (
+                    <div className="flex">
+                      <Button size="lg" type="submit" disabled={sending}>
+                        {sending ? 'Sending\u2026' : 'Request my demo'}
+                      </Button>
+                    </div>
+                  ) : null}
                 </form>
               </div>
             </div>

@@ -1,0 +1,26 @@
+{
+	"name": "decaltracom-mailer",
+	"version": "0.0.0",
+	"private": true,
+	"scripts": {
+		"deploy": "wrangler deploy",
+		"dev": "wrangler dev",
+		"start": "wrangler dev",
+		"test": "vitest",
+		"cf-typegen": "wrangler types",
+		"test-sending": "tsx src/test-send.ts"
+	},
+	"devDependencies": {
+		"@cloudflare/vitest-pool-workers": "^0.8.19",
+		"@types/node": "^24.0.1",
+		"@types/node-fetch": "^2.6.4",
+		"node-fetch": "^2.6.11",
+		"typescript": "^5.5.2",
+		"vitest": "~3.0.7",
+		"wrangler": "^4.19.2"
+	},
+	"dependencies": {
+		"tsx": "^4.20.3",
+		"worker-mailer": "^1.1.4"
+	}
+}
